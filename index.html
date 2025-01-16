@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#007bff">
+    <title>برنامج إدارة العملاء والفواتير</title>
+    <style>
+        /* منع الإعلانات */
+        iframe, 
+        div[id*="google_ads"],
+        div[id*="banner"],
+        div[class*="ad-"],
+        div[class*="ads-"],
+        div[id*="AdBox"],
+        div[class*="advert"],
+        div[id*="sponsor"],
+        ins.adsbygoogle {
+            display: none !important;
+            visibility: hidden !important;
+            width: 0 !important;
+            height: 0 !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            direction: rtl;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .hidden {
+            display: none;
+        }
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        input[type="text"], input[type="number"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .login-screen {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .search-results {
+            position: absolute;
+            width: 100%;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        .search-item {
+            padding: 8px;
+            cursor: pointer;
+        }
+        .search-item:hover {
+            background-color: #f0f0f0;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .pagination button {
+            width: auto;
+            padding: 5px 10px;
+        }
+        .tab-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background-color: #f0f0f0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .tab.active {
+            background-color: #007bff;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-screen hidden">
+        <h2>تسجيل الدخول</h2>
+        <input type="password" id="password" placeholder="كلمة السر">
+        <button id="login-btn">تسجيل الدخول</button>
+    </div>
+
+    <div class="app-container hidden">
+        <h1>برنامج إدارة العملاء والفواتير</h1>
+        
+        <div class="tab-container">
+            <button class="tab active" onclick="showTab('customers')">إدارة الزبائن</button>
+            <button class="tab" onclick="showTab('products')">إدارة البضائع</button>
+            <button class="tab" onclick="showTab('invoices')">الفواتير</button>
+            <button class="tab" onclick="showTab('payments')">المدفوعات</button>
+        </div>
+
+        <!-- قسم إدارة الزبائن -->
+        <div id="customers-tab" class="tab-content active">
+            <div class="section customer-section">
+                <h2>إضافة زبون</h2>
+                <input type="text" id="customer-name" placeholder="اسم الزبون">
+                <input type="text" id="customer-phone" placeholder="رقم الهاتف">
+                <input type="text" id="customer-address" placeholder="العنوان">
+                <button id="add-customer-btn">إضافة زبون</button>
+            </div>
+            
+            <div class="section search-section">
+                <h2>البحث عن زبون</h2>
+                <div style="position: relative;">
+                    <input type="text" id="search-customer" placeholder="ابحث عن اسم الزبون">
+                    <div id="customer-search-results" class="search-results hidden"></div>
+                </div>
+            </div>
+            
+            <div class="section customer-info">
+                <h2>معلومات الزبون</h2>
+                <table id="customer-info-table">
+                    <thead>
+                        <tr>
+                            <th>اسم الزبون</th>
+                            <th>رقم الهاتف</th>
+                            <th>العنوان</th>
+                            <th>عدد الفواتير المستحقة</th>
+                            <th>إجمالي الديون</th>
+                            <th>حذف</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+                <div class="pagination" id="customer-pagination"></div>
+            </div>
+        </div>
+
+        <!-- قسم إدارة البضائع -->
+        <div id="products-tab" class="tab-content">
+            <div class="section search-section">
+                <h2>البحث عن بضاعة</h2>
+                <div style="position: relative;">
+                    <input type="text" id="search-product" placeholder="ابحث عن اسم البضاعة">
+                    <div id="product-search-results" class="search-results hidden"></div>
+                </div>
+            </div>
+
+            <div class="section goods-section">
+                <h2>إضافة بضاعة</h2>
+                <input type="text" id="goods-name" placeholder="اسم البضاعة">
+                <input type="number" id="goods-price" placeholder="سعر البضاعة">
+                <button id="add-goods-btn">إضافة بضاعة</button>
+            </div>
+            
+            <div class="section goods-info">
+                <h2>معلومات البضائع</h2>
+                <table id="goods-info-table">
+                    <thead>
+                        <tr>
+                            <th>اسم البضاعة</th>
+                            <th>سعر البضاعة</th>
+                            <th>حذف</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+                <div class="pagination" id="products-pagination"></div>
+            </div>
+        </div>
+
+        <!-- قسم الفواتير -->
+        <div id="invoices-tab" class="tab-content">
+            <div class="section invoice-section">
+                <h2>إنشاء فاتورة</h2>
+                <div style="position: relative;">
+                    <input type="text" id="invoice-customer-name" placeholder="اسم الزبون">
+                    <div id="invoice-customer-results" class="search-results hidden"></div>
+                </div>
+                <div id="invoice-items">
+                    <div class="invoice-item">
+                        <div style="position: relative;">
+                            <input type="text" class="invoice-item-name" placeholder="اسم البضاعة">
+                            <div class="invoice-product-results search-results hidden"></div>
+                        </div>
+                        <input type="number" class="invoice-item-quantity" placeholder="العدد">
+                    </div>
+                </div>
+                <button id="add-item-btn">إضافة بضاعة أخرى</button>
+                <button id="add-invoice-btn">إضافة فاتورة</button>
+            </div>
+            
+            <div class="section invoice-details">
+                <h2>تفاصيل الفواتير</h2>
+                <table id="invoice-details-table">
+                    <thead>
+                        <tr>
+                            <th>التاريخ والوقت</th>
+                            <th>اسم الزبون</th>
+                            <th>البضائع</th>
+                            <th>السعر الكلي</th>
+                            <th>حذف</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+                <div class="pagination" id="invoices-pagination"></div>
+            </div>
+        </div>
+
+        <!-- قسم المدفوعات -->
+        <div id="payments-tab" class="tab-content">
+            <div class="section payment-section">
+                <h2>الديون والمستحقات</h2>
+                <div class="payment-action">
+                    <div style="position: relative;">
+                        <input type="text" id="payment-customer-name" placeholder="اسم الزبون">
+                        <div id="payment-customer-results" class="search-results hidden"></div>
+                    </div>
+                    <input type="number" id="payment-amount" placeholder="المبلغ المدفوع">
+                    <button id="make-payment-btn">دفع</button>
+                </div>
+                <table id="payment-history-table">
+                    <thead>
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>اسم الزبون</th>
+                            <th>الديون</th>
+                            <th>المبلغ المدفوع</th>
+                            <th>الباقي</th>
+                            <th>حذف</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+                <div class="pagination" id="payments-pagination"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Password Management
+        const PASSWORD_KEY = 'app_password';
+        const CORRECT_PASSWORD = '8gH@1kLm!Qz#5Wt&';
+
+        // Check if password is already set in localStorage
+        window.onload = function() {
+            if (localStorage.getItem(PASSWORD_KEY) !== CORRECT_PASSWORD) {
+                document.querySelector('.login-screen').classList.remove('hidden');
+                document.querySelector('.app-container').classList.add('hidden');
+            } else {
+                document.querySelector('.login-screen').classList.add('hidden');
+                document.querySelector('.app-container').classList.remove('hidden');
+                loadAllData();
+                setupEventListeners();
+                setupInvoiceCustomerSearch();
+            }
+        };
+
+        // Login button event listener
+        document.getElementById('login-btn').addEventListener('click', function() {
+            const password = document.getElementById('password').value;
+            if (password === CORRECT_PASSWORD) {
+                localStorage.setItem(PASSWORD_KEY, CORRECT_PASSWORD);
+                document.querySelector('.login-screen').classList.add('hidden');
+                document.querySelector('.app-container').classList.remove('hidden');
+                loadAllData();
+                setupEventListeners();
+                setupInvoiceCustomerSearch();
+            } else {
+                alert('كلمة السر غير صحيحة');
+            }
+        });
+
+        // Add enter key support for password
+        document.getElementById('password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const password = this.value;
+                if (password === CORRECT_PASSWORD) {
+                    localStorage.setItem(PASSWORD_KEY, CORRECT_PASSWORD);
+                    document.querySelector('.login-screen').classList.add('hidden');
+                    document.querySelector('.app-container').classList.remove('hidden');
+                    loadAllData();
+                    setupEventListeners();
+                    setupInvoiceCustomerSearch();
+                } else {
+                    alert('كلمة السر غير صحيحة');
+                }
+            }
+        });
+
+        // Constants
+        const ITEMS_PER_PAGE = 10;
+        const STORAGE_KEYS = {
+            CUSTOMERS: 'customers',
+            PRODUCTS: 'products',
+            INVOICES: 'invoices',
+            PAYMENTS: 'payments'
+        };
+
+        // Initialize data from localStorage
+        let customers = JSON.parse(localStorage.getItem(STORAGE_KEYS.CUSTOMERS) || '[]');
+        let products = JSON.parse(localStorage.getItem(STORAGE_KEYS.PRODUCTS) || '[]');
+        let invoices = JSON.parse(localStorage.getItem(STORAGE_KEYS.INVOICES) || '[]');
+        let payments = JSON.parse(localStorage.getItem(STORAGE_KEYS.PAYMENTS) || '[]');
+
+        // Initialize application when page loads
+        function loadAllData() {
+            displayCustomers();
+            displayProducts();
+            displayInvoices();
+            displayPayments();
+        }
+
+        function setupEventListeners() {
+            // Customer Management
+            document.getElementById('add-customer-btn').addEventListener('click', function() {
+                const name = document.getElementById('customer-name').value;
+                const phone = document.getElementById('customer-phone').value;
+                const address = document.getElementById('customer-address').value;
+
+                if (!name) {
+                    alert('الرجاء إدخال اسم الزبون');
+                    return;
+                }
+
+                const customer = { name, phone, address, invoiceCount: 0, totalDebt: 0 };
+                customers.push(customer);
+                saveToStorage(STORAGE_KEYS.CUSTOMERS, customers);
+                displayCustomers();
+                clearForm('customer');
+            });
+
+            // Search functionality
+            document.getElementById('search-customer').addEventListener('input', function(e) {
+                const searchText = e.target.value.toLowerCase();
+                const results = customers.filter(customer => 
+                    customer.name.toLowerCase().startsWith(searchText)
+                );
+                
+                const resultsDiv = document.getElementById('customer-search-results');
+                if (searchText && results.length > 0) {
+                    resultsDiv.innerHTML = results.map(customer => 
+                        `<div class="search-item" onclick="selectCustomer('${customer.name}')">${customer.name}</div>`
+                    ).join('');
+                    resultsDiv.classList.remove('hidden');
+                } else {
+                    resultsDiv.classList.add('hidden');
+                }
+            });
+
+            document.getElementById('search-product').addEventListener('input', function(e) {
+                const searchText = e.target.value.toLowerCase();
+                const results = products.filter(product => 
+                    product.name.toLowerCase().startsWith(searchText)
+                );
+                
+                const resultsDiv = document.getElementById('product-search-results');
+                if (searchText && results.length > 0) {
+                    resultsDiv.innerHTML = results.map(product => 
+                        `<div class="search-item" onclick="selectProduct('${product.name}')">${product.name} - ${product.price}</div>`
+                    ).join('');
+                    resultsDiv.classList.remove('hidden');
+                } else {
+                    resultsDiv.classList.add('hidden');
+                }
+            });
+
+            // Product Management
+            document.getElementById('add-goods-btn').addEventListener('click', function() {
+                const name = document.getElementById('goods-name').value;
+                const price = document.getElementById('goods-price').value;
+
+                if (!name || !price) {
+                    alert('الرجاء إدخال اسم وسعر البضاعة');
+                    return;
+                }
+
+                // Check if product already exists
+                if (products.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+                    alert('هذه البضاعة موجودة مسبقاً');
+                    return;
+                }
+
+                const product = { name, price: parseFloat(price) };
+                products.push(product);
+                saveToStorage(STORAGE_KEYS.PRODUCTS, products);
+                displayProducts();
+                clearForm('goods');
+            });
+
+            // Invoice Management
+            document.getElementById('add-item-btn').addEventListener('click', function() {
+                const itemsDiv = document.getElementById('invoice-items');
+                const newItem = document.createElement('div');
+                newItem.className = 'invoice-item';
+                newItem.innerHTML = `
+                    <div style="position: relative;">
+                        <input type="text" class="invoice-item-name" placeholder="اسم البضاعة">
+                        <div class="invoice-product-results search-results hidden"></div>
+                    </div>
+                    <input type="number" class="invoice-item-quantity" placeholder="العدد">
+                `;
+                itemsDiv.appendChild(newItem);
+                setupProductSearch(newItem.querySelector('.invoice-item-name'));
+            });
+
+            document.getElementById('add-invoice-btn').addEventListener('click', function() {
+                const customerName = document.getElementById('invoice-customer-name').value;
+                const items = [];
+                let totalPrice = 0;
+
+                document.querySelectorAll('.invoice-item').forEach(itemDiv => {
+                    const productName = itemDiv.querySelector('.invoice-item-name').value;
+                    const quantity = parseInt(itemDiv.querySelector('.invoice-item-quantity').value);
+                    
+                    if (productName && quantity) {
+                        const product = products.find(p => p.name === productName);
+                        if (product) {
+                            items.push({
+                                productName,
+                                quantity,
+                                unitPrice: product.price,
+                                subtotal: product.price * quantity
+                            });
+                            totalPrice += product.price * quantity;
+                        }
+                    }
+                });
+
+                if (!customerName || items.length === 0) {
+                    alert('الرجاء إدخال اسم الزبون وبضاعة واحدة على الأقل');
+                    return;
+                }
+
+                const invoice = {
+                    date: new Date().toISOString(),
+                    customerName,
+                    items,
+                    totalPrice,
+                    isPaid: false
+                };
+
+                invoices.push(invoice);
+                saveToStorage(STORAGE_KEYS.INVOICES, invoices);
+
+                const customerIndex = customers.findIndex(c => c.name === customerName);
+                if (customerIndex !== -1) {
+                    customers[customerIndex].invoiceCount++;
+                    saveToStorage(STORAGE_KEYS.CUSTOMERS, customers);
+                }
+
+                displayInvoices();
+                displayCustomers();
+                clearForm('invoice');
+            });
+
+            // Payment Management
+            document.getElementById('payment-customer-name').addEventListener('input', function(e) {
+                const searchText = e.target.value.toLowerCase();
+                const results = customers.filter(customer => 
+                    customer.name.toLowerCase().startsWith(searchText)
+                );
+                
+                const resultsDiv = document.getElementById('payment-customer-results');
+                if (searchText && results.length > 0) {
+                    resultsDiv.innerHTML = results.map(customer => 
+                        `<div class="search-item" onclick="selectPaymentCustomer('${customer.name}')">${customer.name}</div>`
+                    ).join('');
+                    resultsDiv.classList.remove('hidden');
+                } else {
+                    resultsDiv.classList.add('hidden');
+                }
+            });
+
+            document.getElementById('make-payment-btn').addEventListener('click', function() {
+                const customerName = document.getElementById('payment-customer-name').value;
+                const amount = parseFloat(document.getElementById('payment-amount').value);
+
+                if (!customerName || !amount) {
+                    alert('الرجاء إدخال اسم الزبون والمبلغ');
+                    return;
+                }
+
+                const customerInvoices = invoices
+                    .filter(inv => inv.customerName === customerName && !inv.isPaid)
+                    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                if (customerInvoices.length === 0) {
+                    alert('لا توجد فواتير غير مدفوعة لهذا الزبون');
+                    return;
+                }
+
+                let remainingAmount = amount;
+                let paidInvoices = 0;
+
+                for (let invoice of customerInvoices) {
+                    if (remainingAmount >= invoice.totalPrice) {
+                        invoice.isPaid = true;
+                        remainingAmount -= invoice.totalPrice;
+                        paidInvoices++;
+                    } else {
+                        break;
+                    }
+                }
+
+                const payment = {
+                    date: new Date().toISOString(),
+                    customerName,
+                    amount,
+                    paidInvoices
+                };
+
+                payments.push(payment);
+                saveToStorage(STORAGE_KEYS.PAYMENTS, payments);
+                saveToStorage(STORAGE_KEYS.INVOICES, invoices);
+
+                const customerIndex = customers.findIndex(c => c.name === customerName);
+                if (customerIndex !== -1) {
+                    customers[customerIndex].invoiceCount -= paidInvoices;
+                    saveToStorage(STORAGE_KEYS.CUSTOMERS, customers);
+                }
+
+                displayPayments();
+                displayInvoices();
+                displayCustomers();
+                clearForm('payment');
+            });
+
+            // Setup initial product search for first item
+            setupProductSearch(document.querySelector('.invoice-item-name'));
+
+            // Setup customer search in invoice creation
+            document.getElementById('invoice-customer-name').addEventListener('input', function(e) {
+                const searchText = e.target.value.toLowerCase();
+                const results = customers.filter(customer => 
+                    customer.name.toLowerCase().startsWith(searchText)
+                );
+                
+                const resultsDiv = document.getElementById('invoice-customer-results');
+                if (searchText && results.length > 0) {
+                    resultsDiv.innerHTML = results.map(customer => 
+                        `<div class="search-item" onclick="selectInvoiceCustomer('${customer.name}')">${customer.name}</div>`
+                    ).join('');
+                    resultsDiv.classList.remove('hidden');
+                } else {
+                    resultsDiv.classList.add('hidden');
+                }
+            });
+        }
+
+        // Tab Management
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            
+            document.getElementById(tabName + '-tab').classList.add('active');
+            document.querySelector(`button[onclick="showTab('${tabName}')"]`).classList.add('active');
+        }
+
+        // Display Functions with Pagination
+        function displayCustomers(page = 1) {
+            const start = (page - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE;
+            const paginatedCustomers = customers.slice(start, end);
+            
+            const tbody = document.querySelector('#customer-info-table tbody');
+            tbody.innerHTML = paginatedCustomers.map(customer => {
+                // Calculate total debt
+                const totalInvoices = invoices
+                    .filter(inv => inv.customerName === customer.name)
+                    .reduce((sum, inv) => sum + inv.totalPrice, 0);
+                
+                const totalPayments = payments
+                    .filter(pay => pay.customerName === customer.name)
+                    .reduce((sum, pay) => sum + pay.amount, 0);
+                
+                const totalDebt = totalInvoices - totalPayments;
+
+                return `
+                    <tr>
+                        <td>${customer.name}</td>
+                        <td>${customer.phone}</td>
+                        <td>${customer.address}</td>
+                        <td>${customer.invoiceCount}</td>
+                        <td>${totalDebt}</td>
+                        <td>
+                            <button onclick="deleteCustomer('${customer.name}')" style="background-color: #dc3545;">حذف</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            updatePagination('customer', customers.length, page);
+        }
+
+        function displayProducts(page = 1) {
+            const start = (page - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE;
+            const paginatedProducts = products.slice(start, end);
+            
+            const tbody = document.querySelector('#goods-info-table tbody');
+            tbody.innerHTML = paginatedProducts.map(product => `
+                <tr>
+                    <td>${product.name}</td>
+                    <td>${product.price}</td>
+                    <td>
+                        <button onclick="deleteProduct('${product.name}')" style="background-color: #dc3545;">حذف</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            updatePagination('products', products.length, page);
+        }
+
+        function displayInvoices(page = 1) {
+            const start = (page - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE;
+            const paginatedInvoices = invoices.slice(start, end);
+            
+            const tbody = document.querySelector('#invoice-details-table tbody');
+            tbody.innerHTML = paginatedInvoices.map(invoice => `
+                <tr>
+                    <td>${new Date(invoice.date).toLocaleString('en-US', { 
+                        year: 'numeric', 
+                        month: '2-digit', 
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })}</td>
+                    <td>${invoice.customerName}</td>
+                    <td>${invoice.items.map(item => 
+                        `${item.productName} (${item.quantity})`
+                    ).join('<br>')}</td>
+                    <td>${invoice.totalPrice}</td>
+                    <td>
+                        <button onclick="deleteInvoice('${invoice.date}', '${invoice.customerName}')" style="background-color: #dc3545;">حذف</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            updatePagination('invoices', invoices.length, page);
+        }
+
+        function displayPayments(page = 1) {
+            const start = (page - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE;
+            const paginatedPayments = payments.slice(start, end);
+            
+            const tbody = document.querySelector('#payment-history-table tbody');
+            tbody.innerHTML = paginatedPayments.map(payment => {
+                // Calculate total debt
+                const totalInvoices = invoices
+                    .filter(inv => inv.customerName === payment.customerName)
+                    .reduce((sum, inv) => sum + inv.totalPrice, 0);
+                
+                const previousPayments = payments
+                    .filter(p => p.customerName === payment.customerName && new Date(p.date) < new Date(payment.date))
+                    .reduce((sum, p) => sum + p.amount, 0);
+                
+                const previousDebt = totalInvoices - previousPayments;
+                const remainingDebt = previousDebt - payment.amount;
+
+                return `
+                    <tr>
+                        <td>${new Date(payment.date).toLocaleString('ar-SA')}</td>
+                        <td>${payment.customerName}</td>
+                        <td>${previousDebt}</td>
+                        <td>${payment.amount}</td>
+                        <td>${remainingDebt}</td>
+                        <td>
+                            <button onclick="deletePayment('${payment.date}', '${payment.customerName}')" style="background-color: #dc3545;">حذف</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            updatePagination('payments', payments.length, page);
+        }
+
+        // Utility Functions
+        function updatePagination(section, totalItems, currentPage) {
+            const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+            const paginationDiv = document.getElementById(`${section}-pagination`);
+            
+            if (totalPages <= 1) {
+                paginationDiv.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            if (currentPage > 1) {
+                html += `<button onclick="display${capitalizeFirst(section)}(${currentPage - 1})">السابق</button>`;
+            }
+            
+            html += `<span>صفحة ${currentPage} من ${totalPages}</span>`;
+            
+            if (currentPage < totalPages) {
+                html += `<button onclick="display${capitalizeFirst(section)}(${currentPage + 1})">التالي</button>`;
+            }
+            
+            paginationDiv.innerHTML = html;
+        }
+
+        function capitalizeFirst(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+
+        function saveToStorage(key, data) {
+            localStorage.setItem(key, JSON.stringify(data));
+        }
+
+        function clearForm(type) {
+            switch(type) {
+                case 'customer':
+                    document.getElementById('customer-name').value = '';
+                    document.getElementById('customer-phone').value = '';
+                    document.getElementById('customer-address').value = '';
+                    break;
+                case 'goods':
+                    document.getElementById('goods-name').value = '';
+                    document.getElementById('goods-price').value = '';
+                    break;
+                case 'invoice':
+                    document.getElementById('invoice-customer-name').value = '';
+                    document.getElementById('invoice-items').innerHTML = `
+                        <div class="invoice-item">
+                            <div style="position: relative;">
+                                <input type="text" class="invoice-item-name" placeholder="اسم البضاعة">
+                                <div class="invoice-product-results search-results hidden"></div>
+                            </div>
+                            <input type="number" class="invoice-item-quantity" placeholder="العدد">
+                        </div>
+                    `;
+                    setupProductSearch(document.querySelector('.invoice-item-name'));
+                    break;
+                case 'payment':
+                    document.getElementById('payment-customer-name').value = '';
+                    document.getElementById('payment-amount').value = '';
+                    break;
+            }
+        }
+
+        // Selection Functions
+        function selectCustomer(name) {
+            document.getElementById('customer-name').value = name;
+            document.getElementById('customer-search-results').classList.add('hidden');
+        }
+
+        function selectProduct(name) {
+            document.getElementById('goods-name').value = name;
+            document.getElementById('product-search-results').classList.add('hidden');
+        }
+
+        function selectInvoiceCustomer(name) {
+            document.getElementById('invoice-customer-name').value = name;
+            document.getElementById('invoice-customer-results').classList.add('hidden');
+        }
+
+        function selectPaymentCustomer(name) {
+            document.getElementById('payment-customer-name').value = name;
+            document.getElementById('payment-customer-results').classList.add('hidden');
+        }
+
+        function selectInvoiceProduct(name, element) {
+            const itemDiv = element.closest('.invoice-item');
+            const input = itemDiv.querySelector('.invoice-item-name');
+            input.value = name;
+            element.parentElement.classList.add('hidden');
+        }
+
+        // Delete Functions
+        function deleteCustomer(customerName) {
+            if (!confirm(`هل أنت متأكد من حذف الزبون "${customerName}"؟`)) {
+                return;
+            }
+
+            // Check if customer has any invoices
+            const customerInvoices = invoices.filter(inv => inv.customerName === customerName);
+            if (customerInvoices.length > 0) {
+                alert('لا يمكن حذف الزبون لأن لديه فواتير مسجلة');
+                return;
+            }
+
+            // Check if customer has any payments
+            const customerPayments = payments.filter(pay => pay.customerName === customerName);
+            if (customerPayments.length > 0) {
+                alert('لا يمكن حذف الزبون لأن لديه مدفوعات مسجلة');
+                return;
+            }
+
+            customers = customers.filter(c => c.name !== customerName);
+            saveToStorage(STORAGE_KEYS.CUSTOMERS, customers);
+            displayCustomers();
+        }
+
+        function deleteProduct(productName) {
+            if (!confirm(`هل أنت متأكد من حذف البضاعة "${productName}"؟`)) {
+                return;
+            }
+
+            // حذف البضاعة مباشرة بغض النظر عن استخدامها في الفواتير
+            products = products.filter(p => p.name !== productName);
+            saveToStorage(STORAGE_KEYS.PRODUCTS, products);
+            displayProducts();
+        }
+
+        function deleteInvoice(date, customerName) {
+            if (!confirm('هل أنت متأكد من حذف هذه الفاتورة؟')) {
+                return;
+            }
+
+            // حذف الفاتورة فقط دون التأثير على الديون
+            invoices = invoices.filter(inv => 
+                !(inv.date === date && inv.customerName === customerName)
+            );
+            saveToStorage(STORAGE_KEYS.INVOICES, invoices);
+
+            // تحديث العرض فقط
+            displayInvoices();
+        }
+
+        function deletePayment(date, customerName) {
+            if (!confirm('هل أنت متأكد من حذف هذا الدفع؟')) {
+                return;
+            }
+
+            // Find the payment
+            const payment = payments.find(pay => 
+                pay.date === date && pay.customerName === customerName
+            );
+            if (!payment) return;
+
+            // Update customer's unpaid invoice count
+            const customerIndex = customers.findIndex(c => c.name === customerName);
+            if (customerIndex !== -1) {
+                customers[customerIndex].invoiceCount += payment.paidInvoices;
+                saveToStorage(STORAGE_KEYS.CUSTOMERS, customers);
+            }
+
+            // Remove payment
+            payments = payments.filter(pay => 
+                !(pay.date === date && pay.customerName === customerName)
+            );
+            saveToStorage(STORAGE_KEYS.PAYMENTS, payments);
+
+            displayPayments();
+            displayInvoices();
+            displayCustomers();
+        }
+
+        // Initial Load
+        function loadAllData() {
+            displayCustomers();
+            displayProducts();
+            displayInvoices();
+            displayPayments();
+        }
+
+        // Product Search Setup
+        function setupProductSearch(input) {
+            input.addEventListener('input', function(e) {
+                const searchText = e.target.value.toLowerCase();
+                const results = products.filter(product => 
+                    product.name.toLowerCase().includes(searchText)
+                );
+                
+                const resultsDiv = e.target.parentElement.querySelector('.invoice-product-results');
+                if (searchText && results.length > 0) {
+                    resultsDiv.innerHTML = results.map(product => 
+                        `<div class="search-item" onclick="selectInvoiceProduct('${product.name}', this)">${product.name} - ${product.price}</div>`
+                    ).join('');
+                    resultsDiv.classList.remove('hidden');
+                } else {
+                    resultsDiv.classList.add('hidden');
+                }
+            });
+        }
+
+        function setupInvoiceCustomerSearch() {
+            document.getElementById('invoice-customer-name').addEventListener('input', function(e) {
+                const searchText = e.target.value.toLowerCase();
+                const results = customers.filter(customer => 
+                    customer.name.toLowerCase().includes(searchText)
+                );
+                
+                const resultsDiv = document.getElementById('invoice-customer-results');
+                if (searchText && results.length > 0) {
+                    resultsDiv.innerHTML = results.map(customer => 
+                        `<div class="search-item" onclick="selectInvoiceCustomer('${customer.name}')">${customer.name}</div>`
+                    ).join('');
+                    resultsDiv.classList.remove('hidden');
+                } else {
+                    resultsDiv.classList.add('hidden');
+                }
+            });
+        }
+    </script>
+    <script>
+        // تسجيل Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/invoice-system/service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
